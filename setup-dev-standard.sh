@@ -156,7 +156,12 @@ if [[ ! -f "$MCP_FILE" ]]; then
         "CLAUDE_FLOW_MEMORY_BACKEND": "hybrid",
         "CLAUDE_FLOW_MEMORY_PATH": "./data/memory",
         "CLAUDE_FLOW_MCP_TRANSPORT": "stdio",
-        "CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS": "1"
+        "CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS": "1",
+        "CLAUDE_FLOW_SPARC_ENABLED": "true",
+        "CLAUDE_FLOW_SPARC_PHASES": "specification,pseudocode,architecture,refinement,completion",
+        "CLAUDE_FLOW_HIVE_TOPOLOGY": "hierarchical",
+        "CLAUDE_FLOW_HIVE_CONSENSUS": "raft",
+        "CLAUDE_FLOW_MAX_AGENTS": "8"
       },
       "autoStart": true
     }
@@ -429,7 +434,19 @@ else
   ok "Swarm config already exists (preserved)"
 fi
 
-# --- 4. Auto-memory store bootstrap ---
+# --- 4. .agents/config.toml (ruflo SPARC + Hive Mind config) ---
+AGENTS_CONFIG="$TARGET_DIR/.agents/config.toml"
+if [[ ! -f "$AGENTS_CONFIG" ]]; then
+  mkdir -p "$TARGET_DIR/.agents"
+  if [[ -f "$SCRIPT_DIR/templates/config.toml" ]]; then
+    cp "$SCRIPT_DIR/templates/config.toml" "$AGENTS_CONFIG"
+    ok ".agents/config.toml created (SPARC + Hive Mind enabled)"
+  fi
+else
+  ok ".agents/config.toml already exists (preserved)"
+fi
+
+# --- 5. Auto-memory store bootstrap ---
 AUTO_MEMORY_FILE="$FLOW_DIR/data/auto-memory-store.json"
 if [[ ! -f "$AUTO_MEMORY_FILE" ]]; then
   cat > "$AUTO_MEMORY_FILE" << AUTOEOF
@@ -438,10 +455,15 @@ AUTOEOF
   ok "Auto-memory store bootstrapped"
 fi
 
-# --- 5. Ruflo native init (non-blocking, 30s timeout) ---
+# --- 6. Ruflo native init (non-blocking) ---
 if command -v npx >/dev/null 2>&1; then
   log "Attempting ruflo native initialization (non-blocking)..."
   cd "$TARGET_DIR"
+  if timeout 60 npx ruflo@latest init --hooks 2>/dev/null; then
+    ok "Ruflo hooks system activated"
+  else
+    warn "Ruflo hooks init failed — continuing"
+  fi
   if timeout 60 npx ruflo@latest init --force 2>/dev/null; then
     ok "Ruflo initialized (--force)"
   else
@@ -450,8 +472,8 @@ if command -v npx >/dev/null 2>&1; then
   if timeout 30 npx ruflo@latest memory init --backend hybrid 2>/dev/null; then
     ok "Ruflo memory initialized (hybrid backend)"
   fi
-  if timeout 30 npx ruflo@latest hive init --topology hierarchical --agents 8 2>/dev/null; then
-    ok "Ruflo hive initialized"
+  if timeout 30 npx ruflo@latest hive init --topology hierarchical --consensus raft --agents 8 2>/dev/null; then
+    ok "Ruflo hive initialized (hierarchical/raft)"
   fi
   if timeout 30 npx ruflo@latest swarm spawn --agents 8 --background 2>/dev/null; then
     ok "Ruflo swarm agents spawned"
@@ -479,7 +501,7 @@ echo ""
 
 # Add to .gitignore if needed
 GITIGNORE="$TARGET_DIR/.gitignore"
-IGNORE_ENTRIES=(".claude-flow/" ".claude/settings.local.json" ".claude/memory.db")
+IGNORE_ENTRIES=(".claude-flow/" ".claude/settings.local.json" ".claude/memory.db" ".agents/data/" "data/memory")
 if [[ -f "$GITIGNORE" ]]; then
   for entry in "${IGNORE_ENTRIES[@]}"; do
     if ! grep -qF "$entry" "$GITIGNORE" 2>/dev/null; then

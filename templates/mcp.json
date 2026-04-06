@@ -9,7 +9,12 @@
         "CLAUDE_FLOW_MEMORY_BACKEND": "hybrid",
         "CLAUDE_FLOW_MEMORY_PATH": "./data/memory",
         "CLAUDE_FLOW_MCP_TRANSPORT": "stdio",
-        "CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS": "1"
+        "CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS": "1",
+        "CLAUDE_FLOW_SPARC_ENABLED": "true",
+        "CLAUDE_FLOW_SPARC_PHASES": "specification,pseudocode,architecture,refinement,completion",
+        "CLAUDE_FLOW_HIVE_TOPOLOGY": "hierarchical",
+        "CLAUDE_FLOW_HIVE_CONSENSUS": "raft",
+        "CLAUDE_FLOW_MAX_AGENTS": "8"
       },
       "autoStart": true
     }
