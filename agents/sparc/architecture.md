@@ -1,5 +1,5 @@
 ---
-name: sparc-architecture
+name: architecture
 description: SPARC Phase 3 - Interface design and technical contracts
 model: sonnet
 ---

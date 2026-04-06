@@ -23,7 +23,7 @@ const AGENT_CAPABILITIES = {
   // SPARC agents
   specification: ['requirements', 'prd', 'scope', 'constraints'],
   pseudocode: ['algorithm-design', 'logic', 'flow', 'data-structures'],
-  'sparc-architecture': ['contracts', 'interfaces', 'modules', 'dependencies'],
+  architecture: ['contracts', 'interfaces', 'modules', 'dependencies'],
   refinement: ['tdd', 'red-green-refactor', 'optimization', 'edge-cases'],
   completion: ['review', 'documentation', 'release', 'deployment'],
 

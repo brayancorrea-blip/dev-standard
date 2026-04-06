@@ -182,6 +182,21 @@ if [[ ! -f "$SETTINGS_FILE" ]]; then
   cat > "$SETTINGS_FILE" << 'SETTINGSEOF'
 {
   "hooks": {
+    "SessionStart": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node .claude/helpers/hook-handler.cjs session-restore"
+          },
+          {
+            "type": "command",
+            "command": "node .claude/helpers/auto-memory-hook.mjs import"
+          }
+        ]
+      }
+    ],
     "UserPromptSubmit": [
       {
         "matcher": "",
@@ -251,6 +266,10 @@ if [[ ! -f "$SETTINGS_FILE" ]]; then
           {
             "type": "command",
             "command": "node .claude/helpers/hook-handler.cjs session-end"
+          },
+          {
+            "type": "command",
+            "command": "node .claude/helpers/auto-memory-hook.mjs sync"
           }
         ]
       }
@@ -437,13 +456,14 @@ fi
 # --- 4. .agents/config.toml (ruflo SPARC + Hive Mind config) ---
 AGENTS_CONFIG="$TARGET_DIR/.agents/config.toml"
 if [[ ! -f "$AGENTS_CONFIG" ]]; then
-  mkdir -p "$TARGET_DIR/.agents"
+  mkdir -p "$TARGET_DIR/.agents/skills/sparc-methodology"
   if [[ -f "$SCRIPT_DIR/templates/config.toml" ]]; then
     cp "$SCRIPT_DIR/templates/config.toml" "$AGENTS_CONFIG"
     ok ".agents/config.toml created (SPARC + Hive Mind enabled)"
   fi
 else
   ok ".agents/config.toml already exists (preserved)"
+  mkdir -p "$TARGET_DIR/.agents/skills/sparc-methodology"
 fi
 
 # --- 5. Auto-memory store bootstrap ---
@@ -458,25 +478,32 @@ fi
 # --- 6. Ruflo native init (non-blocking) ---
 if command -v npx >/dev/null 2>&1; then
   log "Attempting ruflo native initialization (non-blocking)..."
+  RUFLO_LOG="$TARGET_DIR/.claude-flow/ruflo-init.log"
   cd "$TARGET_DIR"
-  if timeout 60 npx ruflo@latest init --hooks 2>/dev/null; then
+  if timeout 60 npx ruflo@latest init --hooks >> "$RUFLO_LOG" 2>&1; then
     ok "Ruflo hooks system activated"
   else
-    warn "Ruflo hooks init failed — continuing"
+    warn "Ruflo hooks init failed — check $RUFLO_LOG"
   fi
-  if timeout 60 npx ruflo@latest init --force 2>/dev/null; then
+  if timeout 60 npx ruflo@latest init --force >> "$RUFLO_LOG" 2>&1; then
     ok "Ruflo initialized (--force)"
   else
-    warn "Ruflo init failed or timed out — local backend active"
+    warn "Ruflo init --force failed — check $RUFLO_LOG"
   fi
-  if timeout 30 npx ruflo@latest memory init --backend hybrid 2>/dev/null; then
+  if timeout 30 npx ruflo@latest memory init --backend hybrid >> "$RUFLO_LOG" 2>&1; then
     ok "Ruflo memory initialized (hybrid backend)"
+  else
+    warn "Ruflo memory init failed — check $RUFLO_LOG"
   fi
-  if timeout 30 npx ruflo@latest hive init --topology hierarchical --consensus raft --agents 8 2>/dev/null; then
+  if timeout 30 npx ruflo@latest hive init --topology hierarchical --consensus raft --agents 8 >> "$RUFLO_LOG" 2>&1; then
     ok "Ruflo hive initialized (hierarchical/raft)"
+  else
+    warn "Ruflo hive init failed — check $RUFLO_LOG"
   fi
-  if timeout 30 npx ruflo@latest swarm spawn --agents 8 --background 2>/dev/null; then
+  if timeout 30 npx ruflo@latest swarm spawn --agents 8 --background >> "$RUFLO_LOG" 2>&1; then
     ok "Ruflo swarm agents spawned"
+  else
+    warn "Ruflo swarm spawn failed — check $RUFLO_LOG"
   fi
   cd - >/dev/null
 fi
@@ -499,14 +526,13 @@ echo ""
 log "Upgrade later: $0 --upgrade"
 echo ""
 
-# Add to .gitignore if needed
+# Add to .gitignore (create if missing)
 GITIGNORE="$TARGET_DIR/.gitignore"
 IGNORE_ENTRIES=(".claude-flow/" ".claude/settings.local.json" ".claude/memory.db" ".agents/data/" "data/memory")
-if [[ -f "$GITIGNORE" ]]; then
-  for entry in "${IGNORE_ENTRIES[@]}"; do
-    if ! grep -qF "$entry" "$GITIGNORE" 2>/dev/null; then
-      echo "$entry" >> "$GITIGNORE"
-    fi
-  done
-  ok "Updated .gitignore"
-fi
+touch "$GITIGNORE"
+for entry in "${IGNORE_ENTRIES[@]}"; do
+  if ! grep -qF "$entry" "$GITIGNORE" 2>/dev/null; then
+    echo "$entry" >> "$GITIGNORE"
+  fi
+done
+ok "Updated .gitignore"
