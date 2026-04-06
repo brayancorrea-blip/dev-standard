@@ -1,0 +1,16 @@
+{
+  "version": "1.0.0",
+  "projectType": "auto-detected",
+  "framework": "auto-detected",
+  "gates": {
+    "specification": "warn",
+    "pseudocode": "warn",
+    "architecture": "warn",
+    "refinement": "warn",
+    "completion": "block"
+  },
+  "testCommand": "auto-detected",
+  "buildCommand": "auto-detected",
+  "sourcePattern": "auto-detected",
+  "testPattern": "auto-detected"
+}
