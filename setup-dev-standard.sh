@@ -504,21 +504,12 @@ AUTOEOF
   ok "Auto-memory store bootstrapped"
 fi
 
-# --- 6. Ruflo native init (non-blocking) ---
+# --- 6. Ruflo subsystem init (memory, hive, swarm) ---
+# Note: ruflo init --force already ran in Step 0 (hooks included)
 if command -v npx >/dev/null 2>&1; then
-  log "Attempting ruflo native initialization (non-blocking)..."
+  log "Initializing ruflo subsystems (memory, hive, swarm)..."
   RUFLO_LOG="$TARGET_DIR/.claude-flow/ruflo-init.log"
   cd "$TARGET_DIR"
-  if run_with_timeout 60 npx ruflo@latest init --hooks >> "$RUFLO_LOG" 2>&1; then
-    ok "Ruflo hooks system activated"
-  else
-    warn "Ruflo hooks init failed — check $RUFLO_LOG"
-  fi
-  if run_with_timeout 60 npx ruflo@latest init --force >> "$RUFLO_LOG" 2>&1; then
-    ok "Ruflo initialized (--force)"
-  else
-    warn "Ruflo init --force failed — check $RUFLO_LOG"
-  fi
   if run_with_timeout 30 npx ruflo@latest memory init --backend hybrid >> "$RUFLO_LOG" 2>&1; then
     ok "Ruflo memory initialized (hybrid backend)"
   else
