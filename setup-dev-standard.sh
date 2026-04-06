@@ -219,34 +219,39 @@ header "Step 6: Configuring settings.json"
 # ============================================================
 
 SETTINGS_FILE="$CLAUDE_DIR/settings.json"
-if [[ "$UPGRADE" == "true" ]] && is_user_modified "$SETTINGS_FILE" 2>/dev/null; then
-  warn "settings.json user-modified — preserved. Update manually if needed."
+if [[ -f "$SETTINGS_FILE" ]]; then
+  # Ruflo already created settings.json in Step 0 with statusLine,
+  # claudeFlow config, agent teams, all hook types, and timeouts.
+  # Preserve it — our helpers are already referenced by ruflo's hooks.
+  ok "settings.json already exists (ruflo-generated — preserved)"
 else
+  # Fallback: ruflo didn't run, create minimal settings.json
   cat > "$SETTINGS_FILE" << 'SETTINGSEOF'
 {
   "hooks": {
     "SessionStart": [
       {
-        "matcher": "",
         "hooks": [
           {
             "type": "command",
-            "command": "node .claude/helpers/hook-handler.cjs session-restore"
+            "command": "sh -c 'exec node \"${CLAUDE_PROJECT_DIR:-.}/.claude/helpers/hook-handler.cjs\" session-restore'",
+            "timeout": 15000
           },
           {
             "type": "command",
-            "command": "node .claude/helpers/auto-memory-hook.mjs import"
+            "command": "sh -c 'exec node \"${CLAUDE_PROJECT_DIR:-.}/.claude/helpers/auto-memory-hook.mjs\" import'",
+            "timeout": 8000
           }
         ]
       }
     ],
     "UserPromptSubmit": [
       {
-        "matcher": "",
         "hooks": [
           {
             "type": "command",
-            "command": "node .claude/helpers/hook-handler.cjs route"
+            "command": "sh -c 'exec node \"${CLAUDE_PROJECT_DIR:-.}/.claude/helpers/hook-handler.cjs\" route'",
+            "timeout": 10000
           }
         ]
       }
@@ -257,27 +262,30 @@ else
         "hooks": [
           {
             "type": "command",
-            "command": "node .claude/helpers/hook-handler.cjs pre-bash"
+            "command": "sh -c 'exec node \"${CLAUDE_PROJECT_DIR:-.}/.claude/helpers/hook-handler.cjs\" pre-bash'",
+            "timeout": 5000
           }
         ]
       },
       {
-        "matcher": "Write|Edit",
+        "matcher": "Write|Edit|MultiEdit",
         "hooks": [
           {
             "type": "command",
-            "command": "node .claude/helpers/hook-handler.cjs pre-edit"
+            "command": "sh -c 'exec node \"${CLAUDE_PROJECT_DIR:-.}/.claude/helpers/hook-handler.cjs\" pre-edit'",
+            "timeout": 5000
           }
         ]
       }
     ],
     "PostToolUse": [
       {
-        "matcher": "Write|Edit",
+        "matcher": "Write|Edit|MultiEdit",
         "hooks": [
           {
             "type": "command",
-            "command": "node .claude/helpers/hook-handler.cjs post-edit"
+            "command": "sh -c 'exec node \"${CLAUDE_PROJECT_DIR:-.}/.claude/helpers/hook-handler.cjs\" post-edit'",
+            "timeout": 10000
           }
         ]
       },
@@ -286,33 +294,41 @@ else
         "hooks": [
           {
             "type": "command",
-            "command": "node .claude/helpers/hook-handler.cjs post-bash"
+            "command": "sh -c 'exec node \"${CLAUDE_PROJECT_DIR:-.}/.claude/helpers/hook-handler.cjs\" post-bash'",
+            "timeout": 5000
           }
         ]
       }
     ],
     "Notification": [
       {
-        "matcher": "",
         "hooks": [
           {
             "type": "command",
-            "command": "node .claude/helpers/hook-handler.cjs notify"
+            "command": "sh -c 'exec node \"${CLAUDE_PROJECT_DIR:-.}/.claude/helpers/hook-handler.cjs\" notify'",
+            "timeout": 3000
+          }
+        ]
+      }
+    ],
+    "SessionEnd": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "sh -c 'exec node \"${CLAUDE_PROJECT_DIR:-.}/.claude/helpers/hook-handler.cjs\" session-end'",
+            "timeout": 10000
           }
         ]
       }
     ],
     "Stop": [
       {
-        "matcher": "",
         "hooks": [
           {
             "type": "command",
-            "command": "node .claude/helpers/hook-handler.cjs session-end"
-          },
-          {
-            "type": "command",
-            "command": "node .claude/helpers/auto-memory-hook.mjs sync"
+            "command": "sh -c 'exec node \"${CLAUDE_PROJECT_DIR:-.}/.claude/helpers/auto-memory-hook.mjs\" sync'",
+            "timeout": 10000
           }
         ]
       }
@@ -320,15 +336,26 @@ else
   },
   "permissions": {
     "allow": [
-      "Bash(node .claude/helpers/*)",
+      "Bash(npx ruflo*)",
+      "Bash(node .claude/*)",
+      "mcp__ruflo__*",
       "Read",
       "Glob",
       "Grep"
+    ],
+    "deny": [
+      "Read(./.env)",
+      "Read(./.env.*)"
     ]
+  },
+  "env": {
+    "CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS": "1",
+    "CLAUDE_FLOW_V3_ENABLED": "true",
+    "CLAUDE_FLOW_HOOKS_ENABLED": "true"
   }
 }
 SETTINGSEOF
-  ok "Created settings.json with hooks (relative paths)"
+  ok "Created settings.json (fallback — ruflo not available)"
 fi
 
 # ============================================================
