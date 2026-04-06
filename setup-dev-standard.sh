@@ -156,7 +156,8 @@ if [[ ! -f "$MCP_FILE" ]]; then
         "CLAUDE_FLOW_TOPOLOGY": "hierarchical",
         "CLAUDE_FLOW_MAX_AGENTS": "8",
         "CLAUDE_FLOW_MEMORY_BACKEND": "hybrid"
-      }
+      },
+      "autoStart": true
     }
   }
 }
@@ -172,8 +173,7 @@ header "Step 6: Configuring settings.json"
 
 SETTINGS_FILE="$CLAUDE_DIR/settings.json"
 if [[ ! -f "$SETTINGS_FILE" ]]; then
-  HOOK_HANDLER="$CLAUDE_DIR/helpers/hook-handler.cjs"
-  cat > "$SETTINGS_FILE" << SETTINGSEOF
+  cat > "$SETTINGS_FILE" << 'SETTINGSEOF'
 {
   "hooks": {
     "UserPromptSubmit": [
@@ -182,7 +182,7 @@ if [[ ! -f "$SETTINGS_FILE" ]]; then
         "hooks": [
           {
             "type": "command",
-            "command": "node $HOOK_HANDLER route"
+            "command": "node .claude/helpers/hook-handler.cjs route"
           }
         ]
       }
@@ -193,7 +193,7 @@ if [[ ! -f "$SETTINGS_FILE" ]]; then
         "hooks": [
           {
             "type": "command",
-            "command": "node $HOOK_HANDLER pre-bash"
+            "command": "node .claude/helpers/hook-handler.cjs pre-bash"
           }
         ]
       },
@@ -202,7 +202,7 @@ if [[ ! -f "$SETTINGS_FILE" ]]; then
         "hooks": [
           {
             "type": "command",
-            "command": "node $HOOK_HANDLER pre-edit"
+            "command": "node .claude/helpers/hook-handler.cjs pre-edit"
           }
         ]
       }
@@ -213,7 +213,7 @@ if [[ ! -f "$SETTINGS_FILE" ]]; then
         "hooks": [
           {
             "type": "command",
-            "command": "node $HOOK_HANDLER post-edit"
+            "command": "node .claude/helpers/hook-handler.cjs post-edit"
           }
         ]
       },
@@ -222,7 +222,7 @@ if [[ ! -f "$SETTINGS_FILE" ]]; then
         "hooks": [
           {
             "type": "command",
-            "command": "node $HOOK_HANDLER post-bash"
+            "command": "node .claude/helpers/hook-handler.cjs post-bash"
           }
         ]
       }
@@ -233,7 +233,7 @@ if [[ ! -f "$SETTINGS_FILE" ]]; then
         "hooks": [
           {
             "type": "command",
-            "command": "node $HOOK_HANDLER notify"
+            "command": "node .claude/helpers/hook-handler.cjs notify"
           }
         ]
       }
@@ -244,7 +244,7 @@ if [[ ! -f "$SETTINGS_FILE" ]]; then
         "hooks": [
           {
             "type": "command",
-            "command": "node $HOOK_HANDLER session-end"
+            "command": "node .claude/helpers/hook-handler.cjs session-end"
           }
         ]
       }
@@ -260,7 +260,7 @@ if [[ ! -f "$SETTINGS_FILE" ]]; then
   }
 }
 SETTINGSEOF
-  ok "Created settings.json with 10 hooks"
+  ok "Created settings.json with hooks (relative paths)"
 else
   ok "settings.json already exists (preserved)"
 fi

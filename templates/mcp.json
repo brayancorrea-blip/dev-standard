@@ -9,7 +9,8 @@
         "CLAUDE_FLOW_TOPOLOGY": "hierarchical",
         "CLAUDE_FLOW_MAX_AGENTS": "8",
         "CLAUDE_FLOW_MEMORY_BACKEND": "hybrid"
-      }
+      },
+      "autoStart": true
     }
   }
 }
