@@ -114,10 +114,10 @@ header "Step 0: Ruflo pre-initialization"
 # ============================================================
 
 if command -v npx >/dev/null 2>&1; then
-  log "Running ruflo init --force (base setup before dev-standard)..."
+  log "Running ruflo init --force --start-all (base + daemon + memory + swarm)..."
   cd "$TARGET_DIR"
-  if run_with_timeout 120 npx ruflo@latest init --force; then
-    ok "Ruflo base initialized"
+  if run_with_timeout 120 npx ruflo@latest init --force --start-all; then
+    ok "Ruflo fully initialized (init + daemon + memory + swarm)"
   else
     warn "Ruflo pre-init failed or not available — continuing with local setup"
   fi
@@ -514,29 +514,10 @@ AUTOEOF
   ok "Auto-memory store bootstrapped"
 fi
 
-# --- 6. Ruflo subsystem init (memory, hive, swarm) ---
-# Note: ruflo init --force already ran in Step 0 (hooks included)
-if command -v npx >/dev/null 2>&1; then
-  log "Initializing ruflo subsystems (memory, hive, swarm)..."
-  RUFLO_LOG="$TARGET_DIR/.claude-flow/ruflo-init.log"
-  cd "$TARGET_DIR"
-  if run_with_timeout 30 npx ruflo@latest memory init --backend hybrid >> "$RUFLO_LOG" 2>&1; then
-    ok "Ruflo memory initialized (hybrid backend)"
-  else
-    warn "Ruflo memory init failed — check $RUFLO_LOG"
-  fi
-  if run_with_timeout 30 npx ruflo@latest hive init --topology hierarchical --consensus raft --agents 8 >> "$RUFLO_LOG" 2>&1; then
-    ok "Ruflo hive initialized (hierarchical/raft)"
-  else
-    warn "Ruflo hive init failed — check $RUFLO_LOG"
-  fi
-  if run_with_timeout 30 npx ruflo@latest swarm spawn --agents 8 --background >> "$RUFLO_LOG" 2>&1; then
-    ok "Ruflo swarm agents spawned"
-  else
-    warn "Ruflo swarm spawn failed — check $RUFLO_LOG"
-  fi
-  cd - >/dev/null
-fi
+# --- 6. Ruflo subsystem verification ---
+# Note: ruflo init --force --start-all already ran in Step 0
+#       which auto-starts daemon, memory, and swarm
+ok "Ruflo subsystems initialized via Step 0 (--start-all)"
 
 ok "Memory + Swarm + AgentDB fully initialized"
 
