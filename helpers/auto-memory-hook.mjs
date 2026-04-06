@@ -83,19 +83,19 @@ async function loadMemoryPackage() {
   try {
     const { createRequire } = await import('module');
     const require = createRequire(join(PROJECT_ROOT, 'package.json'));
-    return require('@claude-flow/memory');
+    return require('ruflo/memory');
   } catch { /* fall through */ }
 
   // Strategy 2: ESM import
   try {
-    return await import('@claude-flow/memory');
+    return await import('ruflo/memory');
   } catch { /* fall through */ }
 
-  // Strategy 3: Walk up looking for @claude-flow/memory
+  // Strategy 3: Walk up looking for ruflo/memory
   let searchDir = PROJECT_ROOT;
   const { parse } = await import('path');
   while (searchDir !== parse(searchDir).root) {
-    const candidate = join(searchDir, 'node_modules', '@claude-flow', 'memory', 'dist', 'index.js');
+    const candidate = join(searchDir, 'node_modules', 'ruflo', 'dist', 'memory.js');
     if (existsSync(candidate)) {
       try { return await import(`file://${candidate}`); } catch { /* fall through */ }
     }

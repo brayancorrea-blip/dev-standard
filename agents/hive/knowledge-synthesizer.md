@@ -24,6 +24,6 @@ Extracts valuable patterns from completed features and sessions.
 
 ## Ruflo Integration
 ```bash
-mcp__claude-flow__memory_store({ key: "pattern/<name>", value: "<pattern>" })
-mcp__claude-flow__memory_search({ query: "<similar pattern>", limit: 5 })
+mcp__ruflo__memory_store({ key: "pattern/<name>", value: "<pattern>" })
+mcp__ruflo__memory_search({ query: "<similar pattern>", limit: 5 })
 ```

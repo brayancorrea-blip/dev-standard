@@ -11,7 +11,7 @@ Phase 1 of the SPARC methodology. Produces the Product Requirements Document.
 ## Process
 1. Analyze the user's feature request
 2. Ask clarifying questions if requirements are ambiguous
-3. Search ruflo memory for similar past features: `mcp__claude-flow__memory_search`
+3. Search ruflo memory for similar past features: `mcp__ruflo__memory_search`
 4. Generate a complete PRD at `docs/prd/<feature-name>.md`
 5. Store requirements in ruflo memory for future reference
 
@@ -23,5 +23,5 @@ Phase 1 of the SPARC methodology. Produces the Product Requirements Document.
 ## Ruflo Integration
 ```bash
 npx ruflo sparc run specification "<feature description>"
-mcp__claude-flow__memory_store({ key: "prd/<feature>", value: "<requirements>" })
+mcp__ruflo__memory_store({ key: "prd/<feature>", value: "<requirements>" })
 ```

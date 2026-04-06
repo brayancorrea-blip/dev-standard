@@ -21,8 +21,8 @@ Coordinates multi-agent voting for important decisions.
 
 ## Ruflo Integration
 ```bash
-mcp__claude-flow__swarm_init({ topology: "hierarchical", maxAgents: 5 })
-mcp__claude-flow__task_orchestrate({ task: "<decision>", strategy: "consensus" })
+mcp__ruflo__swarm_init({ topology: "hierarchical", maxAgents: 5 })
+mcp__ruflo__task_orchestrate({ task: "<decision>", strategy: "consensus" })
 ```
 
 ## Voting Weights

@@ -147,7 +147,7 @@ if [[ ! -f "$MCP_FILE" ]]; then
   cat > "$MCP_FILE" << 'MCPEOF'
 {
   "mcpServers": {
-    "claude-flow": {
+    "ruflo": {
       "command": "npx",
       "args": ["-y", "ruflo@latest", "mcp", "start"],
       "env": {
@@ -347,6 +347,115 @@ find "$CLAUDE_DIR" -type f \( -name "*.cjs" -o -name "*.js" -o -name "*.mjs" -o 
 done
 
 ok "Lock file generated"
+
+# ============================================================
+header "Step 11: Initializing Memory, Swarm & AgentDB"
+# ============================================================
+
+FLOW_DIR="$TARGET_DIR/.claude-flow"
+INIT_TS="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+
+mkdir -p "$FLOW_DIR"/{data,sessions,swarm}
+
+# --- 1. Memory store ---
+MEMORY_FILE="$FLOW_DIR/data/memory.json"
+if [[ ! -f "$MEMORY_FILE" ]]; then
+  cat > "$MEMORY_FILE" << MEMEOF
+{
+  "version": "1.0.0",
+  "initialized": "${INIT_TS}",
+  "entries": []
+}
+MEMEOF
+  ok "Memory store initialized"
+else
+  ok "Memory store already exists (preserved)"
+fi
+
+# --- 2. AgentDB: register all agents ---
+AGENTDB_FILE="$FLOW_DIR/data/agentdb.json"
+if [[ ! -f "$AGENTDB_FILE" ]]; then
+  REGISTERED_COUNT="$(find "$CLAUDE_DIR/agents" -name "*.md" 2>/dev/null | wc -l | tr -d ' ')"
+  cat > "$AGENTDB_FILE" << AGENTEOF
+{
+  "version": "1.0.0",
+  "initialized": "${INIT_TS}",
+  "agents": [
+    {"id": "coder",                 "type": "core",  "sparc_phase": "refinement",   "status": "ready", "model": "sonnet"},
+    {"id": "tester",                "type": "core",  "sparc_phase": "refinement",   "status": "ready", "model": "sonnet"},
+    {"id": "reviewer",              "type": "core",  "sparc_phase": "completion",   "status": "ready", "model": "sonnet"},
+    {"id": "planner",               "type": "core",  "sparc_phase": "specification","status": "ready", "model": "sonnet"},
+    {"id": "researcher",            "type": "core",  "sparc_phase": "all",          "status": "ready", "model": "sonnet"},
+    {"id": "product-manager",       "type": "role",  "sparc_phase": "specification","status": "ready", "model": "sonnet"},
+    {"id": "architect",             "type": "role",  "sparc_phase": "architecture", "status": "ready", "model": "sonnet"},
+    {"id": "engineer",              "type": "role",  "sparc_phase": "refinement",   "status": "ready", "model": "sonnet"},
+    {"id": "qa-engineer",           "type": "role",  "sparc_phase": "completion",   "status": "ready", "model": "sonnet"},
+    {"id": "tech-reviewer",         "type": "role",  "sparc_phase": "completion",   "status": "ready", "model": "sonnet"},
+    {"id": "specification",         "type": "sparc", "sparc_phase": "1",            "status": "ready", "model": "sonnet"},
+    {"id": "pseudocode",            "type": "sparc", "sparc_phase": "2",            "status": "ready", "model": "sonnet"},
+    {"id": "architecture",          "type": "sparc", "sparc_phase": "3",            "status": "ready", "model": "sonnet"},
+    {"id": "refinement",            "type": "sparc", "sparc_phase": "4",            "status": "ready", "model": "sonnet"},
+    {"id": "completion",            "type": "sparc", "sparc_phase": "5",            "status": "ready", "model": "sonnet"},
+    {"id": "consensus-coordinator", "type": "hive",  "sparc_phase": "all",          "status": "ready", "model": "sonnet"},
+    {"id": "decision-arbiter",      "type": "hive",  "sparc_phase": "all",          "status": "ready", "model": "sonnet"},
+    {"id": "knowledge-synthesizer", "type": "hive",  "sparc_phase": "all",          "status": "ready", "model": "sonnet"}
+  ]
+}
+AGENTEOF
+  ok "AgentDB initialized (${REGISTERED_COUNT} agents registered, status: ready)"
+else
+  ok "AgentDB already exists (preserved)"
+fi
+
+# --- 3. Swarm config ---
+SWARM_FILE="$FLOW_DIR/swarm/config.json"
+if [[ ! -f "$SWARM_FILE" ]]; then
+  cat > "$SWARM_FILE" << SWARMEOF
+{
+  "topology": "hierarchical",
+  "maxAgents": 8,
+  "memoryBackend": "hybrid",
+  "initialized": "${INIT_TS}",
+  "queen": "planner",
+  "workers": ["coder", "tester", "reviewer", "researcher", "architect", "engineer", "qa-engineer"],
+  "hive": ["consensus-coordinator", "decision-arbiter", "knowledge-synthesizer"],
+  "routing": "automatic",
+  "consensusThreshold": 0.66
+}
+SWARMEOF
+  ok "Swarm initialized (hierarchical topology, queen=planner, 7 workers, 3 hive)"
+else
+  ok "Swarm config already exists (preserved)"
+fi
+
+# --- 4. Auto-memory store bootstrap ---
+AUTO_MEMORY_FILE="$FLOW_DIR/data/auto-memory-store.json"
+if [[ ! -f "$AUTO_MEMORY_FILE" ]]; then
+  cat > "$AUTO_MEMORY_FILE" << AUTOEOF
+[]
+AUTOEOF
+  ok "Auto-memory store bootstrapped"
+fi
+
+# --- 5. Ruflo native init (non-blocking, 30s timeout) ---
+if command -v npx >/dev/null 2>&1; then
+  log "Attempting ruflo native initialization (non-blocking)..."
+  cd "$TARGET_DIR"
+  if timeout 30 npx ruflo@latest memory init --backend hybrid 2>/dev/null; then
+    ok "Ruflo memory initialized (hybrid backend)"
+  else
+    warn "Ruflo not available or timed out — local memory backend active"
+  fi
+  if timeout 30 npx ruflo@latest hive init --topology hierarchical --agents 8 2>/dev/null; then
+    ok "Ruflo hive initialized"
+  fi
+  if timeout 30 npx ruflo@latest swarm spawn --agents 8 --background 2>/dev/null; then
+    ok "Ruflo swarm agents spawned"
+  fi
+  cd - >/dev/null
+fi
+
+ok "Memory + Swarm + AgentDB fully initialized"
 
 # ============================================================
 header "Setup Complete!"

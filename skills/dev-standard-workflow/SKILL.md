@@ -99,8 +99,8 @@ npx ruflo orchestrate "complex task" --agents 5 --parallel
 ## MCP Tools (from Claude Code)
 
 ```
-mcp__claude-flow__swarm_init({ topology: "hierarchical", maxAgents: 5 })
-mcp__claude-flow__agent_spawn({ type: "architect" })
-mcp__claude-flow__task_orchestrate({ task: "...", strategy: "parallel" })
-mcp__claude-flow__memory_search({ query: "...", limit: 5 })
+mcp__ruflo__swarm_init({ topology: "hierarchical", maxAgents: 5 })
+mcp__ruflo__agent_spawn({ type: "architect" })
+mcp__ruflo__task_orchestrate({ task: "...", strategy: "parallel" })
+mcp__ruflo__memory_search({ query: "...", limit: 5 })
 ```

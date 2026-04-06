@@ -24,6 +24,6 @@ Phase 3 of the SPARC methodology. Defines interfaces and contracts.
 ## Hive Mind Integration
 For complex decisions with multiple valid approaches:
 ```bash
-mcp__claude-flow__swarm_init({ topology: "hierarchical", maxAgents: 3 })
-mcp__claude-flow__task_orchestrate({ task: "evaluate architecture options", strategy: "consensus" })
+mcp__ruflo__swarm_init({ topology: "hierarchical", maxAgents: 3 })
+mcp__ruflo__task_orchestrate({ task: "evaluate architecture options", strategy: "consensus" })
 ```
