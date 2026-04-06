@@ -52,10 +52,20 @@ log "Mode: $( [[ "$UPGRADE" == "true" ]] && echo "Upgrade" || echo "Fresh instal
 # Check prerequisites
 command -v node >/dev/null 2>&1 || { err "Node.js required (v20+)"; exit 1; }
 command -v git >/dev/null 2>&1 || { err "Git required"; exit 1; }
+command -v npx >/dev/null 2>&1 || { err "npx required (comes with Node.js)"; exit 1; }
 
 NODE_VERSION=$(node -v | sed 's/v//' | cut -d. -f1)
 if [[ "$NODE_VERSION" -lt 18 ]]; then
   warn "Node.js 20+ recommended (found v$NODE_VERSION)"
+fi
+
+# Install ruflo globally if not available
+if ! npx ruflo@latest --version >/dev/null 2>&1; then
+  log "Installing ruflo..."
+  npm install -g ruflo@latest 2>/dev/null || npm install -g ruflo 2>/dev/null || true
+  ok "Ruflo installed ($(npx ruflo@latest --version 2>/dev/null || echo 'latest'))"
+else
+  ok "Ruflo already installed ($(npx ruflo@latest --version 2>/dev/null))"
 fi
 
 # Checksum function
