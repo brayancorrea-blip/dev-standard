@@ -17,6 +17,18 @@ warn()  { echo -e "${YELLOW}[WARN]${NC} $1"; }
 err()   { echo -e "${RED}[ERROR]${NC} $1"; }
 header(){ echo -e "\n${CYAN}=== $1 ===${NC}\n"; }
 
+# timeout wrapper — macOS does not ship timeout by default
+run_with_timeout() {
+  local secs=$1; shift
+  if command -v timeout >/dev/null 2>&1; then
+    timeout "$secs" "$@"
+  elif command -v gtimeout >/dev/null 2>&1; then
+    gtimeout "$secs" "$@"
+  else
+    "$@"
+  fi
+}
+
 # Parse args
 UPGRADE=false
 TARGET_DIR="."
@@ -88,6 +100,23 @@ install_file() {
 }
 
 # ============================================================
+header "Step 0: Ruflo pre-initialization"
+# ============================================================
+
+if command -v npx >/dev/null 2>&1; then
+  log "Running ruflo init --force (base setup before dev-standard)..."
+  cd "$TARGET_DIR"
+  if run_with_timeout 120 npx ruflo@latest init --force; then
+    ok "Ruflo base initialized"
+  else
+    warn "Ruflo pre-init failed or not available — continuing with local setup"
+  fi
+  cd - >/dev/null
+else
+  warn "npx not found — skipping ruflo pre-init"
+fi
+
+# ============================================================
 header "Step 1: Creating directory structure"
 # ============================================================
 
@@ -143,7 +172,9 @@ header "Step 5: Configuring .mcp.json"
 # ============================================================
 
 MCP_FILE="$TARGET_DIR/.mcp.json"
-if [[ ! -f "$MCP_FILE" ]]; then
+if [[ "$UPGRADE" == "true" ]] && is_user_modified "$MCP_FILE" 2>/dev/null; then
+  warn ".mcp.json user-modified — preserved. Update manually if needed."
+else
   cat > "$MCP_FILE" << 'MCPEOF'
 {
   "mcpServers": {
@@ -168,9 +199,7 @@ if [[ ! -f "$MCP_FILE" ]]; then
   }
 }
 MCPEOF
-  ok "Created .mcp.json (ruflo@latest)"
-else
-  ok ".mcp.json already exists (preserved)"
+  ok "Created .mcp.json (ruflo@latest + SPARC/Hive env vars)"
 fi
 
 # ============================================================
@@ -178,7 +207,9 @@ header "Step 6: Configuring settings.json"
 # ============================================================
 
 SETTINGS_FILE="$CLAUDE_DIR/settings.json"
-if [[ ! -f "$SETTINGS_FILE" ]]; then
+if [[ "$UPGRADE" == "true" ]] && is_user_modified "$SETTINGS_FILE" 2>/dev/null; then
+  warn "settings.json user-modified — preserved. Update manually if needed."
+else
   cat > "$SETTINGS_FILE" << 'SETTINGSEOF'
 {
   "hooks": {
@@ -286,8 +317,6 @@ if [[ ! -f "$SETTINGS_FILE" ]]; then
 }
 SETTINGSEOF
   ok "Created settings.json with hooks (relative paths)"
-else
-  ok "settings.json already exists (preserved)"
 fi
 
 # ============================================================
@@ -480,27 +509,27 @@ if command -v npx >/dev/null 2>&1; then
   log "Attempting ruflo native initialization (non-blocking)..."
   RUFLO_LOG="$TARGET_DIR/.claude-flow/ruflo-init.log"
   cd "$TARGET_DIR"
-  if timeout 60 npx ruflo@latest init --hooks >> "$RUFLO_LOG" 2>&1; then
+  if run_with_timeout 60 npx ruflo@latest init --hooks >> "$RUFLO_LOG" 2>&1; then
     ok "Ruflo hooks system activated"
   else
     warn "Ruflo hooks init failed — check $RUFLO_LOG"
   fi
-  if timeout 60 npx ruflo@latest init --force >> "$RUFLO_LOG" 2>&1; then
+  if run_with_timeout 60 npx ruflo@latest init --force >> "$RUFLO_LOG" 2>&1; then
     ok "Ruflo initialized (--force)"
   else
     warn "Ruflo init --force failed — check $RUFLO_LOG"
   fi
-  if timeout 30 npx ruflo@latest memory init --backend hybrid >> "$RUFLO_LOG" 2>&1; then
+  if run_with_timeout 30 npx ruflo@latest memory init --backend hybrid >> "$RUFLO_LOG" 2>&1; then
     ok "Ruflo memory initialized (hybrid backend)"
   else
     warn "Ruflo memory init failed — check $RUFLO_LOG"
   fi
-  if timeout 30 npx ruflo@latest hive init --topology hierarchical --consensus raft --agents 8 >> "$RUFLO_LOG" 2>&1; then
+  if run_with_timeout 30 npx ruflo@latest hive init --topology hierarchical --consensus raft --agents 8 >> "$RUFLO_LOG" 2>&1; then
     ok "Ruflo hive initialized (hierarchical/raft)"
   else
     warn "Ruflo hive init failed — check $RUFLO_LOG"
   fi
-  if timeout 30 npx ruflo@latest swarm spawn --agents 8 --background >> "$RUFLO_LOG" 2>&1; then
+  if run_with_timeout 30 npx ruflo@latest swarm spawn --agents 8 --background >> "$RUFLO_LOG" 2>&1; then
     ok "Ruflo swarm agents spawned"
   else
     warn "Ruflo swarm spawn failed — check $RUFLO_LOG"
