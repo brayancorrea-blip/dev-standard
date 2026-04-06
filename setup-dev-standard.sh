@@ -442,10 +442,13 @@ fi
 if command -v npx >/dev/null 2>&1; then
   log "Attempting ruflo native initialization (non-blocking)..."
   cd "$TARGET_DIR"
+  if timeout 60 npx ruflo@latest init --force 2>/dev/null; then
+    ok "Ruflo initialized (--force)"
+  else
+    warn "Ruflo init failed or timed out — local backend active"
+  fi
   if timeout 30 npx ruflo@latest memory init --backend hybrid 2>/dev/null; then
     ok "Ruflo memory initialized (hybrid backend)"
-  else
-    warn "Ruflo not available or timed out — local memory backend active"
   fi
   if timeout 30 npx ruflo@latest hive init --topology hierarchical --agents 8 2>/dev/null; then
     ok "Ruflo hive initialized"
