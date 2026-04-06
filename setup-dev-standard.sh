@@ -193,16 +193,18 @@ else
       "args": ["-y", "ruflo@latest", "mcp", "start"],
       "env": {
         "npm_config_update_notifier": "false",
+        "CLAUDE_FLOW_MODE": "v3",
+        "CLAUDE_FLOW_HOOKS_ENABLED": "true",
         "CLAUDE_FLOW_LOG_LEVEL": "info",
+        "CLAUDE_FLOW_TOPOLOGY": "hierarchical-mesh",
+        "CLAUDE_FLOW_MAX_AGENTS": "15",
         "CLAUDE_FLOW_MEMORY_BACKEND": "hybrid",
         "CLAUDE_FLOW_MEMORY_PATH": "./data/memory",
         "CLAUDE_FLOW_MCP_TRANSPORT": "stdio",
         "CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS": "1",
         "CLAUDE_FLOW_SPARC_ENABLED": "true",
         "CLAUDE_FLOW_SPARC_PHASES": "specification,pseudocode,architecture,refinement,completion",
-        "CLAUDE_FLOW_HIVE_TOPOLOGY": "hierarchical",
-        "CLAUDE_FLOW_HIVE_CONSENSUS": "raft",
-        "CLAUDE_FLOW_MAX_AGENTS": "8"
+        "CLAUDE_FLOW_HIVE_CONSENSUS": "raft"
       },
       "autoStart": true
     }
