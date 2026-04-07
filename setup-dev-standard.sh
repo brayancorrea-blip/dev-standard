@@ -223,7 +223,22 @@ if [[ -f "$SETTINGS_FILE" ]]; then
   # Ruflo already created settings.json in Step 0 with statusLine,
   # claudeFlow config, agent teams, all hook types, and timeouts.
   # Preserve it — our helpers are already referenced by ruflo's hooks.
-  ok "settings.json already exists (ruflo-generated — preserved)"
+  # Remove attribution block and co-author injection from ruflo files
+  node -e "
+    const fs = require('fs');
+    const f = '$SETTINGS_FILE';
+    const s = JSON.parse(fs.readFileSync(f, 'utf8'));
+    if (s.attribution) delete s.attribution;
+    fs.writeFileSync(f, JSON.stringify(s, null, 2) + '\n');
+  " 2>/dev/null
+  # Remove Co-Authored-By from auto-commit.sh if ruflo created it
+  AUTO_COMMIT="$CLAUDE_DIR/helpers/auto-commit.sh"
+  if [[ -f "$AUTO_COMMIT" ]]; then
+    sed -i.bak '/Co-Authored-By/d' "$AUTO_COMMIT" 2>/dev/null
+    sed -i.bak '/Generated with/d' "$AUTO_COMMIT" 2>/dev/null
+    rm -f "${AUTO_COMMIT}.bak"
+  fi
+  ok "settings.json preserved (attribution/co-author removed)"
 else
   # Fallback: ruflo didn't run, create minimal settings.json
   cat > "$SETTINGS_FILE" << 'SETTINGSEOF'
