@@ -113,6 +113,14 @@ install_file() {
 header "Step 0: Ruflo pre-initialization"
 # ============================================================
 
+# Backup user's existing CLAUDE.md before ruflo --force overwrites it
+USER_CLAUDE_MD_BACKUP=""
+if [[ -f "$TARGET_DIR/CLAUDE.md" ]]; then
+  USER_CLAUDE_MD_BACKUP="$(mktemp)"
+  cp "$TARGET_DIR/CLAUDE.md" "$USER_CLAUDE_MD_BACKUP"
+  log "Backed up existing CLAUDE.md (will be merged after ruflo init)"
+fi
+
 if command -v npx >/dev/null 2>&1; then
   log "Running ruflo init --force --start-all (base + daemon + memory + swarm)..."
   cd "$TARGET_DIR"
@@ -124,6 +132,26 @@ if command -v npx >/dev/null 2>&1; then
   cd - >/dev/null
 else
   warn "npx not found — skipping ruflo pre-init"
+fi
+
+# Restore user's CLAUDE.md content (merge with ruflo-generated section)
+if [[ -n "$USER_CLAUDE_MD_BACKUP" ]] && [[ -f "$USER_CLAUDE_MD_BACKUP" ]]; then
+  if [[ -f "$TARGET_DIR/CLAUDE.md" ]]; then
+    # Ruflo overwrote it — prepend user's original content back
+    RUFLO_CLAUDE_MD="$(mktemp)"
+    cp "$TARGET_DIR/CLAUDE.md" "$RUFLO_CLAUDE_MD"
+    {
+      cat "$USER_CLAUDE_MD_BACKUP"
+      echo ""
+      echo "<!-- Ruflo configuration (auto-generated) -->"
+      cat "$RUFLO_CLAUDE_MD"
+    } > "$TARGET_DIR/CLAUDE.md"
+    rm -f "$RUFLO_CLAUDE_MD"
+    ok "User CLAUDE.md preserved (ruflo section appended)"
+  else
+    cp "$USER_CLAUDE_MD_BACKUP" "$TARGET_DIR/CLAUDE.md"
+  fi
+  rm -f "$USER_CLAUDE_MD_BACKUP"
 fi
 
 # ============================================================
