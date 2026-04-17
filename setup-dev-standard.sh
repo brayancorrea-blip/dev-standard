@@ -195,15 +195,54 @@ ok "Installed $AGENT_COUNT agents"
 header "Step 4: Installing skills and commands"
 # ============================================================
 
-if [[ -f "$SCRIPT_DIR/skills/dev-standard-workflow/SKILL.md" ]]; then
-  install_file "$SCRIPT_DIR/skills/dev-standard-workflow/SKILL.md" "$CLAUDE_DIR/skills/dev-standard-workflow/SKILL.md"
+# Utilidad compartida entre skills
+if [[ -f "$SCRIPT_DIR/skills/_common.py" ]]; then
+  install_file "$SCRIPT_DIR/skills/_common.py" "$CLAUDE_DIR/skills/_common.py"
 fi
+
+# Cada subcarpeta bajo skills/ es una skill; se copian todos sus archivos
+# (SKILL.md, scripts .py, requirements.txt, .env.example, etc.)
+for skill_dir in "$SCRIPT_DIR/skills"/*/; do
+  [[ -d "$skill_dir" ]] || continue
+  skill_name="$(basename "$skill_dir")"
+  for file in "$skill_dir"*; do
+    [[ -f "$file" ]] || continue
+    install_file "$file" "$CLAUDE_DIR/skills/$skill_name/$(basename "$file")"
+  done
+done
+
+SKILL_COUNT=$(find "$CLAUDE_DIR/skills" -name "SKILL.md" 2>/dev/null | wc -l | tr -d ' ')
+ok "Installed $SKILL_COUNT skills"
 
 for cmd in init.md status.md; do
   if [[ -f "$SCRIPT_DIR/commands/dev-standard/$cmd" ]]; then
     install_file "$SCRIPT_DIR/commands/dev-standard/$cmd" "$CLAUDE_DIR/commands/dev-standard/$cmd"
   fi
 done
+
+# ============================================================
+header "Step 4.5: Python deps para skills de automatización (Playwright)"
+# ============================================================
+
+if find "$CLAUDE_DIR/skills" -name "requirements.txt" -exec grep -l playwright {} \; 2>/dev/null | grep -q .; then
+  if command -v python3 >/dev/null 2>&1; then
+    PY_VERSION=$(python3 -c 'import sys; print(f"{sys.version_info.major}.{sys.version_info.minor}")')
+    log "Python $PY_VERSION detectado"
+    if python3 -c "import playwright" 2>/dev/null; then
+      ok "Playwright ya instalado"
+    else
+      log "Instalando Playwright (pip install playwright && playwright install chromium)..."
+      if python3 -m pip install --user playwright >/dev/null 2>&1; then
+        python3 -m playwright install chromium >/dev/null 2>&1 && ok "Playwright listo" \
+          || warn "Instala Chromium manualmente: python3 -m playwright install chromium"
+      else
+        warn "No se pudo instalar Playwright automáticamente. Ejecuta manualmente: pip install playwright && playwright install chromium"
+      fi
+    fi
+  else
+    warn "Python 3.10+ no encontrado — las skills de automatización no funcionarán hasta instalarlo"
+  fi
+fi
 
 # ============================================================
 header "Step 5: Configuring .mcp.json"
